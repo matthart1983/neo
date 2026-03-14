@@ -1,0 +1,34 @@
+[package]
+name = "neo-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["Matt Hartley <matthew.t.hartley@gmail.com>"]
+description = "Agentic AI development platform — multi-model, CLI-first"
+license = "MIT"
+repository = "https://github.com/matthart1983/neo"
+
+[[bin]]
+name = "neo"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+dirs = "5"
+rusqlite = { version = "0.31", features = ["bundled"] }
+tokio-stream = "0.1"
+futures-util = "0.3"
+crossterm = "0.27"
+indicatif = "0.17"
+colored = "2"
+rustyline = "14"
+glob = "0.3"
+regex = "1"
+ignore = "0.4"
