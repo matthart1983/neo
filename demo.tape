@@ -2,7 +2,7 @@ Output demo.gif
 
 Require neo
 
-Set Shell "bash"
+Set Shell "zsh"
 Set FontSize 14
 Set Width 1200
 Set Height 700
