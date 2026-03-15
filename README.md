@@ -10,6 +10,16 @@ Neo orchestrates multiple specialised AI agents across different models, using [
 
 ---
 
+## Demo
+
+<p align="center">
+  <img src="demo.gif" alt="Neo demo — CLI commands, tool use, and code review" width="800">
+</p>
+
+> One-shot questions, file reading with tool use, and automated code review — all routed to the optimal model via OpenRouter.
+
+---
+
 ## Features
 
 - **Intelligent model routing** — Weighted scoring algorithm selects the optimal model per task (capability 40%, cost 25%, latency 20%, context fit 15%)
