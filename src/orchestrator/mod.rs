@@ -6,6 +6,7 @@ use anyhow::{Context, Result};
 use crate::agents::{AgentExecutor, AgentId};
 use crate::api::{Message, ModelInfo, OpenRouterClient, Role};
 use crate::config::{get_api_key, NeoConfig};
+use crate::context::ContextManager;
 use crate::router::{default_capabilities, ModelRouter};
 use crate::session::{SessionManager, SessionStats};
 use crate::tools::ToolRegistry;
@@ -49,7 +50,8 @@ impl Orchestrator {
             config.budget.clone(),
         ));
 
-        let executor = AgentExecutor::new(client, tool_registry, router);
+        let context_manager = Arc::new(ContextManager::new(config.context.clone()));
+        let executor = AgentExecutor::new(client, tool_registry, router, context_manager);
 
         let mut session = SessionManager::new()?;
         session.start_thread(&workspace);
@@ -89,8 +91,9 @@ impl Orchestrator {
             models,
             self.config.budget.clone(),
         ));
+        let context_manager = Arc::new(ContextManager::new(self.config.context.clone()));
 
-        self.executor = AgentExecutor::new(client, tool_registry, router);
+        self.executor = AgentExecutor::new(client, tool_registry, router, context_manager);
     }
 
     pub async fn handle_message(&mut self, input: &str) -> Result<OrchestratorResponse> {

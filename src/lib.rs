@@ -5,4 +5,5 @@ pub mod router;
 pub mod agents;
 pub mod tools;
 pub mod session;
+pub mod context;
 pub mod orchestrator;

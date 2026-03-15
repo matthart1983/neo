@@ -83,6 +83,20 @@ impl ModelRouter {
         })
     }
 
+    /// Look up a model's context window size by ID.
+    pub fn model_context_limit(&self, model_id: &str) -> Option<usize> {
+        self.available_models
+            .iter()
+            .find(|m| m.id == model_id)
+            .map(|m| m.context_length)
+            .or_else(|| {
+                self.capabilities
+                    .iter()
+                    .find(|c| c.model_id == model_id)
+                    .map(|c| c.context)
+            })
+    }
+
     pub fn select_for_category(&self, category: TaskCategory) -> Result<SelectedModel> {
         let profile = TaskProfile {
             category,

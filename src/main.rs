@@ -150,6 +150,22 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
                             return Ok(());
                         }
                     }
+                    "context.summary_threshold" => {
+                        if let Ok(v) = val.parse() {
+                            cfg.context.summary_threshold = v;
+                        } else {
+                            eprintln!("{}: invalid number: {}", "Error".red(), val);
+                            return Ok(());
+                        }
+                    }
+                    "context.max_file_lines" => {
+                        if let Ok(v) = val.parse() {
+                            cfg.context.max_file_lines = v;
+                        } else {
+                            eprintln!("{}: invalid number: {}", "Error".red(), val);
+                            return Ok(());
+                        }
+                    }
                     _ => {
                         eprintln!("{}: unknown config key: {}", "Error".red(), key);
                         return Ok(());
@@ -163,6 +179,8 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
                     "default_model" => config.core.default_model.clone(),
                     "budget.max_per_day" => config.budget.max_per_day.to_string(),
                     "budget.max_per_request" => config.budget.max_per_request.to_string(),
+                    "context.summary_threshold" => config.context.summary_threshold.to_string(),
+                    "context.max_file_lines" => config.context.max_file_lines.to_string(),
                     _ => {
                         eprintln!("{}: unknown config key: {}", "Error".red(), key);
                         return Ok(());

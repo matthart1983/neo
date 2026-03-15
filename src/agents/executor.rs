@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 
 use crate::api::client::OpenRouterClient;
 use crate::api::types::{ChatRequest, Message, Role};
+use crate::context::ContextManager;
 use crate::router::selector::ModelRouter;
 use crate::tools::ToolRegistry;
 
@@ -14,6 +15,7 @@ pub struct AgentExecutor {
     client: Arc<OpenRouterClient>,
     tool_registry: Arc<ToolRegistry>,
     router: Arc<ModelRouter>,
+    context_manager: Arc<ContextManager>,
 }
 
 pub struct AgentResult {
@@ -31,11 +33,13 @@ impl AgentExecutor {
         client: Arc<OpenRouterClient>,
         tool_registry: Arc<ToolRegistry>,
         router: Arc<ModelRouter>,
+        context_manager: Arc<ContextManager>,
     ) -> Self {
         Self {
             client,
             tool_registry,
             router,
+            context_manager,
         }
     }
 
@@ -52,6 +56,10 @@ impl AgentExecutor {
             .context("failed to select model for agent")?;
 
         let model_id = selected.model_id.clone();
+
+        // Look up the model's context window from the router
+        let model_context_limit = self.router.model_context_limit(&model_id).unwrap_or(128_000);
+        let max_output_tokens: usize = 4096;
 
         let system_msg = Message {
             role: Role::System,
@@ -83,13 +91,22 @@ impl AgentExecutor {
         loop {
             iterations += 1;
 
+            // --- Context window management ---
+            // Before each API call, ensure messages fit within the model's context.
+            let prepared = self.context_manager.prepare(
+                &all_messages,
+                model_context_limit,
+                max_output_tokens,
+            );
+            let send_messages = prepared.messages;
+
             let request = ChatRequest {
                 model: model_id.clone(),
-                messages: all_messages.clone(),
+                messages: send_messages,
                 tools: tools.clone(),
                 stream: false,
                 temperature: Some(config.temperature),
-                max_tokens: Some(1024),
+                max_tokens: Some(max_output_tokens.min(1024)),
             };
 
             let response = self
