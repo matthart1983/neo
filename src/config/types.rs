@@ -79,7 +79,7 @@ impl Default for BudgetConfig {
             max_per_session: 5.00,
             max_per_day: 20.00,
             warn_at_percentage: 80,
-            preferred_cost_tier: "any".into(),
+            preferred_cost_tier: "budget".into(),
         }
     }
 }

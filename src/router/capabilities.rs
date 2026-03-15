@@ -30,7 +30,7 @@ pub enum CostTier {
 pub fn default_capabilities() -> Vec<ModelCapability> {
     vec![
         ModelCapability {
-            model_id: "anthropic/claude-sonnet-4-20250514".into(),
+            model_id: "anthropic/claude-sonnet-4".into(),
             strengths: vec![
                 "code_generation".into(),
                 "code_edit".into(),
@@ -98,7 +98,7 @@ pub fn default_capabilities() -> Vec<ModelCapability> {
             cost_tier: CostTier::Budget,
         },
         ModelCapability {
-            model_id: "google/gemini-2.5-pro-preview-06-05".into(),
+            model_id: "google/gemini-2.5-pro".into(),
             strengths: vec![
                 "code_generation".into(),
                 "review".into(),
@@ -111,7 +111,7 @@ pub fn default_capabilities() -> Vec<ModelCapability> {
             cost_tier: CostTier::Mid,
         },
         ModelCapability {
-            model_id: "anthropic/claude-3.5-haiku-20241022".into(),
+            model_id: "anthropic/claude-3.5-haiku".into(),
             strengths: vec![
                 "conversation".into(),
                 "search".into(),

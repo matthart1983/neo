@@ -89,7 +89,7 @@ impl AgentExecutor {
                 tools: tools.clone(),
                 stream: false,
                 temperature: Some(config.temperature),
-                max_tokens: None,
+                max_tokens: Some(1024),
             };
 
             let response = self
