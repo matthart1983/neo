@@ -11,7 +11,6 @@ Set TypingSpeed 40ms
 Set Padding 20
 
 Env PATH "/Users/matt/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
-Env OPENROUTER_API_KEY "$OPENROUTER_API_KEY"
 Env HOME "/Users/matt"
 
 Hide
