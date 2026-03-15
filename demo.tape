@@ -14,9 +14,9 @@ Env PATH "/Users/matt/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 Env HOME "/Users/matt"
 
 Hide
-Type "cd /Users/matt/neo && clear"
+Type "DISABLE_AUTO_UPDATE=true source ~/.zshrc && cd /Users/matt/neo && clear"
 Enter
-Sleep 1s
+Sleep 2s
 Show
 
 # Show help — now with 13 subcommands including pipeline
