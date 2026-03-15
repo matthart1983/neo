@@ -1,3 +1,6 @@
+pub mod pipeline;
+pub mod plan;
+
 use std::env;
 use std::sync::Arc;
 
@@ -28,6 +31,10 @@ pub struct OrchestratorResponse {
     pub session_cost: f64,
     pub context_tokens: usize,
     pub context_limit: usize,
+    /// If the pipeline was used, how many steps were executed.
+    pub pipeline_steps: Option<usize>,
+    /// How many review cycles were run (0 if no pipeline).
+    pub review_cycles: usize,
 }
 
 impl Orchestrator {
@@ -148,7 +155,66 @@ impl Orchestrator {
             session_cost: self.session.current_stats().total_cost,
             context_tokens: ctx_tokens,
             context_limit: ctx_limit,
+            pipeline_steps: None,
+            review_cycles: 0,
         })
+    }
+
+    /// Run the full Planner → Coder → Reviewer pipeline for a complex task.
+    pub async fn handle_pipeline(&mut self, task: &str) -> Result<OrchestratorResponse> {
+        let user_msg = Message {
+            role: Role::User,
+            content: Some(task.to_string()),
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        };
+        self.session.add_message(user_msg);
+
+        let messages = self.current_messages();
+        let result = pipeline::run_pipeline(&self.executor, task, messages).await?;
+
+        let assistant_msg = Message {
+            role: Role::Assistant,
+            content: Some(result.final_content.clone()),
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        };
+        self.session.add_message(assistant_msg);
+
+        let primary_model = result
+            .models_used
+            .first()
+            .map(|(m, _)| m.clone())
+            .unwrap_or_default();
+        self.session.record_cost(
+            &primary_model,
+            result.total_cost,
+            result.total_tokens_in,
+            result.total_tokens_out,
+        );
+        let _ = self.session.save_thread();
+
+        let (ctx_tokens, ctx_limit) = self.context_usage();
+
+        Ok(OrchestratorResponse {
+            content: result.final_content,
+            agent_used: AgentId::Planner,
+            model_used: primary_model,
+            tokens_in: result.total_tokens_in,
+            tokens_out: result.total_tokens_out,
+            cost_usd: result.total_cost,
+            session_cost: self.session.current_stats().total_cost,
+            context_tokens: ctx_tokens,
+            context_limit: ctx_limit,
+            pipeline_steps: Some(result.steps_executed),
+            review_cycles: result.review_cycles,
+        })
+    }
+
+    pub fn executor(&self) -> &AgentExecutor {
+        &self.executor
     }
 
     pub async fn handle_command(
@@ -211,6 +277,8 @@ impl Orchestrator {
             session_cost: self.session.current_stats().total_cost,
             context_tokens: ctx_tokens,
             context_limit: ctx_limit,
+            pipeline_steps: None,
+            review_cycles: 0,
         })
     }
 

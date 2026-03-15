@@ -20,12 +20,12 @@ Enter
 Sleep 1s
 Show
 
-# Show help
+# Show help — now with 13 subcommands including pipeline
 Type "neo --help"
 Enter
 Sleep 3s
 
-# One-shot ask — shows context window in footer
+# One-shot ask — shows model routing + context window in footer
 Type `neo ask "What is the capital of France? Answer in one sentence."`
 Enter
 Sleep 10s
@@ -40,6 +40,11 @@ Type "neo review"
 Enter
 Sleep 15s
 
+# Run the Planner → Coder → Reviewer pipeline
+Type `neo pipeline "Add a /status REPL command that prints the current thread ID and session cost"`
+Enter
+Sleep 25s
+
 # Start interactive REPL
 Type "neo"
 Enter
@@ -50,7 +55,7 @@ Type "/context"
 Enter
 Sleep 3s
 
-# Show REPL help
+# Show REPL help — now includes /pipeline
 Type "/help"
 Enter
 Sleep 3s

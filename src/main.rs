@@ -218,6 +218,24 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
                 }
             }
         }
+        Command::Pipeline { task } => {
+            let mut orch = Orchestrator::new(config)?;
+            orch.init().await;
+            let response = orch.handle_pipeline(&task).await?;
+            println!("{}", response.content);
+            if let Some(steps) = response.pipeline_steps {
+                eprintln!(
+                    "{}",
+                    format!(
+                        "[pipeline: {} steps, {} review cycles]",
+                        steps, response.review_cycles
+                    )
+                    .dimmed()
+                );
+            }
+            let footer = print_footer(&orch, &response);
+            println!("{}", footer.dimmed());
+        }
         Command::Models { sort } => {
             let api_key = get_api_key(&config).unwrap();
             let client = neo_cli::api::OpenRouterClient::new(

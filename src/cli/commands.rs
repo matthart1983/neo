@@ -76,6 +76,12 @@ pub enum Command {
         period: String,
     },
 
+    /// Run the Planner → Coder → Reviewer pipeline for a complex task
+    Pipeline {
+        /// The task to execute through the full pipeline
+        task: String,
+    },
+
     /// List available models
     Models {
         /// Sort field (name, cost, speed)

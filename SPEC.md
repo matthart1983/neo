@@ -900,13 +900,17 @@ steps = [
 - [x] Budget controls — per-request/session/day caps with configurable limits
 - [x] 8.7 MB single static binary, zero warnings
 
-### Phase 2 — Multi-Agent Orchestration (Next)
+### Phase 2 — Multi-Agent Orchestration ✅ Complete
 
-- [ ] Agent execution graph with dependency ordering
-- [ ] Parallel agent execution for independent sub-tasks
-- [ ] Review feedback loop (Reviewer → Coder iteration, max 3 cycles)
-- [ ] Context window management (automatic summarisation of old messages)
-- [ ] Planner → Coder → Reviewer pipeline for complex requests
+- [x] Execution plan data model with dependency graph (`orchestrator/plan.rs`)
+- [x] Plan parser — extracts numbered steps, agents, dependencies, and files from Planner output
+- [x] Parallel group computation — topological sort into dependency-respecting batches
+- [x] Review feedback loop — Reviewer → Coder iteration, max 3 cycles, auto-approval detection
+- [x] Planner → Coder → Reviewer pipeline (`orchestrator/pipeline.rs`) with graceful fallback
+- [x] `neo pipeline <task>` CLI subcommand (13th subcommand)
+- [x] `/pipeline <task>` REPL command with spinner and pipeline status output
+- [x] Context window management (automatic summarisation of old messages) — Phase 1 already delivered this
+- [x] OrchestratorResponse extended with `pipeline_steps` and `review_cycles` metadata
 
 ### Phase 3 — Workflow Integration
 

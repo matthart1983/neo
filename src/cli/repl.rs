@@ -35,6 +35,15 @@ pub async fn start(orchestrator: &mut Orchestrator) -> Result<()> {
                             print_repl_help();
                             continue;
                         }
+                        cmd if cmd.starts_with("/pipeline ") => {
+                            let task = cmd.strip_prefix("/pipeline ").unwrap().trim();
+                            if task.is_empty() {
+                                eprintln!("{}: usage: /pipeline <task description>", "Error".red());
+                                continue;
+                            }
+                            handle_pipeline(orchestrator, task).await;
+                            continue;
+                        }
                         _ => {
                             eprintln!(
                                 "{}: unknown command '{}'. Type {} for available commands.",
@@ -108,6 +117,51 @@ pub async fn start(orchestrator: &mut Orchestrator) -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn handle_pipeline(orchestrator: &mut Orchestrator, task: &str) {
+    use indicatif::{ProgressBar, ProgressStyle};
+
+    let spinner = ProgressBar::new_spinner();
+    spinner.set_style(
+        ProgressStyle::default_spinner()
+            .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+            .template("{spinner:.cyan} {msg}")
+            .unwrap(),
+    );
+    spinner.set_message("Running pipeline: Plan → Code → Review...");
+    spinner.enable_steady_tick(std::time::Duration::from_millis(80));
+
+    let result = orchestrator.handle_pipeline(task).await;
+    spinner.finish_and_clear();
+
+    match result {
+        Ok(response) => {
+            println!("{}", response.content);
+            if let Some(steps) = response.pipeline_steps {
+                println!(
+                    "{}",
+                    format!(
+                        "  Pipeline: {} steps executed, {} review cycles",
+                        steps, response.review_cycles
+                    )
+                    .cyan()
+                );
+            }
+            let footer = orchestrator.session_manager().format_cost_footer(
+                &response.model_used,
+                response.tokens_in,
+                response.tokens_out,
+                response.cost_usd,
+                response.context_tokens,
+                response.context_limit,
+            );
+            println!("{}", footer.dimmed());
+        }
+        Err(e) => {
+            eprintln!("{}: pipeline failed: {:#}", "Error".red(), e);
+        }
+    }
 }
 
 fn handle_handoff(orchestrator: &mut Orchestrator) {
@@ -199,6 +253,10 @@ fn print_repl_help() {
     println!("{}", "REPL Commands".bold());
     println!("  {}      Show context window status", "/context".cyan());
     println!("  {}      Hand off to a new thread (summarises current)", "/handoff".cyan());
+    println!(
+        "  {} Run Planner→Coder→Reviewer pipeline",
+        "/pipeline <task>".cyan()
+    );
     println!("  {}         Show this help", "/help".cyan());
     println!("  {}          Exit", "Ctrl+D".cyan());
     println!("  {}          Cancel current operation", "Ctrl+C".cyan());
