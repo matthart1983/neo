@@ -15,6 +15,7 @@ pub struct Orchestrator {
     executor: AgentExecutor,
     session: SessionManager,
     config: NeoConfig,
+    context_manager: Arc<ContextManager>,
 }
 
 pub struct OrchestratorResponse {
@@ -25,6 +26,8 @@ pub struct OrchestratorResponse {
     pub tokens_out: usize,
     pub cost_usd: f64,
     pub session_cost: f64,
+    pub context_tokens: usize,
+    pub context_limit: usize,
 }
 
 impl Orchestrator {
@@ -51,7 +54,7 @@ impl Orchestrator {
         ));
 
         let context_manager = Arc::new(ContextManager::new(config.context.clone()));
-        let executor = AgentExecutor::new(client, tool_registry, router, context_manager);
+        let executor = AgentExecutor::new(client, tool_registry, router, context_manager.clone());
 
         let mut session = SessionManager::new()?;
         session.start_thread(&workspace);
@@ -60,6 +63,7 @@ impl Orchestrator {
             executor,
             session,
             config,
+            context_manager,
         })
     }
 
@@ -92,6 +96,7 @@ impl Orchestrator {
             self.config.budget.clone(),
         ));
         let context_manager = Arc::new(ContextManager::new(self.config.context.clone()));
+        self.context_manager = context_manager.clone();
 
         self.executor = AgentExecutor::new(client, tool_registry, router, context_manager);
     }
@@ -131,6 +136,8 @@ impl Orchestrator {
         );
         let _ = self.session.save_thread();
 
+        let (ctx_tokens, ctx_limit) = self.context_usage();
+
         Ok(OrchestratorResponse {
             content: result.content,
             agent_used: agent_id,
@@ -139,6 +146,8 @@ impl Orchestrator {
             tokens_out: result.tokens_out,
             cost_usd: result.cost_usd,
             session_cost: self.session.current_stats().total_cost,
+            context_tokens: ctx_tokens,
+            context_limit: ctx_limit,
         })
     }
 
@@ -190,6 +199,8 @@ impl Orchestrator {
         );
         let _ = self.session.save_thread();
 
+        let (ctx_tokens, ctx_limit) = self.context_usage();
+
         Ok(OrchestratorResponse {
             content: result.content,
             agent_used: agent_id,
@@ -198,6 +209,8 @@ impl Orchestrator {
             tokens_out: result.tokens_out,
             cost_usd: result.cost_usd,
             session_cost: self.session.current_stats().total_cost,
+            context_tokens: ctx_tokens,
+            context_limit: ctx_limit,
         })
     }
 
@@ -215,6 +228,75 @@ impl Orchestrator {
 
     pub fn config(&self) -> &NeoConfig {
         &self.config
+    }
+
+    /// Returns (current_tokens, effective_limit) for the session context.
+    pub fn context_usage(&self) -> (usize, usize) {
+        let messages = self.current_messages();
+        let tokens = crate::context::manager::estimate_messages_tokens(&messages);
+        let limit = self.config.context.summary_threshold;
+        (tokens, limit)
+    }
+
+    /// Returns context fill as a percentage (0–100+).
+    pub fn context_fill_percentage(&self) -> usize {
+        let (tokens, limit) = self.context_usage();
+        if limit == 0 { 100 } else { (tokens * 100) / limit }
+    }
+
+    /// Hand off the current thread: summarise it, start a fresh thread with the summary
+    /// as a system-level context message. Returns the old thread ID.
+    pub fn handoff_thread(&mut self) -> Result<String> {
+        let messages = self.current_messages();
+        let old_thread_id = self
+            .session
+            .current_thread_id()
+            .unwrap_or_default()
+            .to_string();
+
+        // Build a summary of the conversation
+        let mut summary_lines = Vec::new();
+        for msg in &messages {
+            let role = match msg.role {
+                Role::User => "User",
+                Role::Assistant => "Assistant",
+                Role::Tool => continue, // skip tool results
+                Role::System => continue,
+            };
+            if let Some(ref content) = msg.content {
+                let brief = if content.len() > 300 {
+                    format!("{}...", &content[..300].trim_end())
+                } else {
+                    content.clone()
+                };
+                summary_lines.push(format!("{}: {}", role, brief));
+            }
+        }
+
+        let summary = format!(
+            "[Continued from thread {}]\n\nPrevious conversation summary ({} messages):\n{}",
+            old_thread_id,
+            messages.len(),
+            summary_lines.join("\n")
+        );
+
+        // Save old thread
+        let _ = self.session.save_thread();
+
+        // Start a new thread
+        let workspace = std::env::current_dir().unwrap_or_default();
+        self.session.start_thread(&workspace);
+
+        // Inject the summary as a system message
+        self.session.add_message(Message {
+            role: Role::System,
+            content: Some(summary),
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        });
+
+        Ok(old_thread_id)
     }
 
     fn current_messages(&self) -> Vec<Message> {

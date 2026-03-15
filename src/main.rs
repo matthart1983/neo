@@ -35,6 +35,20 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+fn print_footer(
+    orch: &Orchestrator,
+    response: &neo_cli::orchestrator::OrchestratorResponse,
+) -> String {
+    orch.session_manager().format_cost_footer(
+        &response.model_used,
+        response.tokens_in,
+        response.tokens_out,
+        response.cost_usd,
+        response.context_tokens,
+        response.context_limit,
+    )
+}
+
 async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Result<()> {
     match cmd {
         Command::Ask { prompt } => {
@@ -42,12 +56,7 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
             orch.init().await;
             let response = orch.handle_message(&prompt).await?;
             println!("{}", response.content);
-            let footer = orch.session_manager().format_cost_footer(
-                &response.model_used,
-                response.tokens_in,
-                response.tokens_out,
-                response.cost_usd,
-            );
+            let footer = print_footer(&orch, &response);
             println!("{}", footer.dimmed());
         }
         Command::Do { task } => {
@@ -55,12 +64,7 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
             orch.init().await;
             let response = orch.handle_command("do", &task).await?;
             println!("{}", response.content);
-            let footer = orch.session_manager().format_cost_footer(
-                &response.model_used,
-                response.tokens_in,
-                response.tokens_out,
-                response.cost_usd,
-            );
+            let footer = print_footer(&orch, &response);
             println!("{}", footer.dimmed());
         }
         Command::Review { commit } => {
@@ -69,12 +73,7 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
             let args = commit.unwrap_or_else(|| "Review the current working changes.".into());
             let response = orch.handle_command("review", &args).await?;
             println!("{}", response.content);
-            let footer = orch.session_manager().format_cost_footer(
-                &response.model_used,
-                response.tokens_in,
-                response.tokens_out,
-                response.cost_usd,
-            );
+            let footer = print_footer(&orch, &response);
             println!("{}", footer.dimmed());
         }
         Command::Plan { task } => {
@@ -82,12 +81,7 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
             orch.init().await;
             let response = orch.handle_command("plan", &task).await?;
             println!("{}", response.content);
-            let footer = orch.session_manager().format_cost_footer(
-                &response.model_used,
-                response.tokens_in,
-                response.tokens_out,
-                response.cost_usd,
-            );
+            let footer = print_footer(&orch, &response);
             println!("{}", footer.dimmed());
         }
         Command::Debug { error } => {
@@ -95,12 +89,7 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
             orch.init().await;
             let response = orch.handle_command("debug", &error).await?;
             println!("{}", response.content);
-            let footer = orch.session_manager().format_cost_footer(
-                &response.model_used,
-                response.tokens_in,
-                response.tokens_out,
-                response.cost_usd,
-            );
+            let footer = print_footer(&orch, &response);
             println!("{}", footer.dimmed());
         }
         Command::Test => {
@@ -108,12 +97,7 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
             orch.init().await;
             let response = orch.handle_command("test", "").await?;
             println!("{}", response.content);
-            let footer = orch.session_manager().format_cost_footer(
-                &response.model_used,
-                response.tokens_in,
-                response.tokens_out,
-                response.cost_usd,
-            );
+            let footer = print_footer(&orch, &response);
             println!("{}", footer.dimmed());
         }
         Command::Doc => {
@@ -121,12 +105,7 @@ async fn dispatch(cmd: Command, config: neo_cli::config::types::NeoConfig) -> Re
             orch.init().await;
             let response = orch.handle_command("doc", "").await?;
             println!("{}", response.content);
-            let footer = orch.session_manager().format_cost_footer(
-                &response.model_used,
-                response.tokens_in,
-                response.tokens_out,
-                response.cost_usd,
-            );
+            let footer = print_footer(&orch, &response);
             println!("{}", footer.dimmed());
         }
         Command::Config { action } => match action {

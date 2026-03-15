@@ -185,6 +185,10 @@ impl SessionManager {
         self.current_thread.as_ref().map(|t| &t.messages)
     }
 
+    pub fn current_thread_id(&self) -> Option<&str> {
+        self.current_thread.as_ref().map(|t| t.id.as_str())
+    }
+
     pub fn set_current_thread(&mut self, thread: Thread) {
         self.current_thread = Some(thread);
     }
@@ -195,10 +199,50 @@ impl SessionManager {
         tokens_in: usize,
         tokens_out: usize,
         cost: f64,
+        context_tokens: usize,
+        context_limit: usize,
     ) -> String {
+        let fill_pct = if context_limit > 0 {
+            (context_tokens * 100) / context_limit
+        } else {
+            0
+        };
+        let ctx_bar = context_bar(fill_pct);
         format!(
-            "[{} · {}↑ {}↓ · ${:.6} · session ${:.4}]",
-            model, tokens_in, tokens_out, cost, self.stats.total_cost
+            "[{} · {}↑ {}↓ · ${:.6} · session ${:.4} · ctx {}/{} ({}%) {}]",
+            model,
+            tokens_in,
+            tokens_out,
+            cost,
+            self.stats.total_cost,
+            format_tokens(context_tokens),
+            format_tokens(context_limit),
+            fill_pct,
+            ctx_bar,
         )
     }
+}
+
+/// Compact token count display: 1234 → "1.2k", 50000 → "50k"
+fn format_tokens(n: usize) -> String {
+    if n >= 1_000_000 {
+        format!("{:.1}M", n as f64 / 1_000_000.0)
+    } else if n >= 1_000 {
+        format!("{:.1}k", n as f64 / 1_000.0)
+    } else {
+        n.to_string()
+    }
+}
+
+/// Visual bar showing context fill: ████░░░░
+fn context_bar(pct: usize) -> String {
+    let width = 8;
+    let filled = (pct * width / 100).min(width);
+    let empty = width - filled;
+    let bar_char = if pct >= 90 { '█' } else if pct >= 70 { '▓' } else { '█' };
+    format!(
+        "{}{}",
+        std::iter::repeat(bar_char).take(filled).collect::<String>(),
+        std::iter::repeat('░').take(empty).collect::<String>(),
+    )
 }
